@@ -1,0 +1,5 @@
+langchain-text-splitters
+langchain-community
+langchain-core
+chromadb
+pypdf
