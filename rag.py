@@ -7,7 +7,18 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-token = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
+
+try:
+    import streamlit as st
+    token = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
+except:
+    load_dotenv()
+
+try:
+    import streamlit as st
+    token = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
+except:
+    token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
 # 🔥 Embedding
 embeddings = HuggingFaceEmbeddings(
