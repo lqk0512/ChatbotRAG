@@ -4,24 +4,18 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
-import streamlit as st
-token = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
+def get_token():
+    try:
+        import streamlit as st
+        return st.secrets["HUGGINGFACEHUB_API_TOKEN"]
+    except:
+        return os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
-try:
-    import streamlit as st
-    token = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
-except:
-    token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-
-# 🔥 Embedding
 embeddings = HuggingFaceEmbeddings(
     model_name="BAAI/bge-small-en-v1.5"
 )
 
-# 🔥 Load vector DB
 vectorstore = Chroma(
     persist_directory="chroma_db",
     embedding_function=embeddings
@@ -32,14 +26,12 @@ retriever = vectorstore.as_retriever(
     search_kwargs={"k": 5, "score_threshold": 0.2}
 )
 
-# 🔥 Format context + citation
 def format_docs(docs):
     return "\n\n".join(
         f"[{d.metadata.get('source')}:{d.metadata.get('page')}]\n{d.page_content}"
         for d in docs
     )
 
-# 🔥 Prompt (NotebookLM style)
 template = """
 You are a helpful assistant.
 
@@ -56,26 +48,31 @@ Question: {question}
 
 prompt = ChatPromptTemplate.from_template(template)
 
-llm_base = HuggingFaceEndpoint(
-    repo_id="Qwen/Qwen2.5-7B-Instruct",
-    temperature=0,
-    max_new_tokens=256,
-    task="conversational",
-    huggingfacehub_api_token=token,
-)
+def build_rag_chain():
+    token = get_token()
 
-llm = ChatHuggingFace(llm=llm_base)
+    llm_base = HuggingFaceEndpoint(
+        repo_id="Qwen/Qwen2.5-7B-Instruct",
+        huggingfacehub_api_token=token,
+        temperature=0,
+        max_new_tokens=256,
+        task="conversational"
+    )
 
-rag_chain = (
-    {
-        "context": retriever | format_docs,
-        "question": RunnablePassthrough()
-    }
-    | prompt
-    | llm
-    | StrOutputParser()
-)
+    llm = ChatHuggingFace(llm=llm_base)
 
-# 🔥 API
+    rag_chain = (
+        {
+            "context": retriever | format_docs,
+            "question": RunnablePassthrough()
+        }
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+
+    return rag_chain
+
 def ask(question: str):
+    rag_chain = build_rag_chain()
     return rag_chain.invoke(question)
