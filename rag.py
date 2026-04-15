@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+token = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
 
 # 🔥 Embedding
 embeddings = HuggingFaceEmbeddings(
@@ -52,7 +53,8 @@ llm_base = HuggingFaceEndpoint(
     repo_id="Qwen/Qwen2.5-7B-Instruct",
     temperature=0,
     max_new_tokens=256,
-    task="conversational"
+    task="conversational",
+    huggingfacehub_api_token=token,
 )
 
 llm = ChatHuggingFace(llm=llm_base)
